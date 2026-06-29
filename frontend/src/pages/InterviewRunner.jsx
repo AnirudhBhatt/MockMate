@@ -164,7 +164,7 @@ function InterviewRunner() {
     setExecutionResult({ status: 'Running...', output: '' });
 
     try {
-      const response = await fetch('/api/sessions/execute', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/sessions/execute`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
