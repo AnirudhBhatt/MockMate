@@ -6,7 +6,9 @@ import { useNavigate } from 'react-router-dom';
 import io from 'socket.io-client';
 
 // Use the current domain in production, or localhost in development
-const BACKEND_URL = import.meta.env.PROD ? window.location.origin : 'http://localhost:5001';
+const BACKEND_URL = import.meta.env.VITE_API_URL 
+  ? import.meta.env.VITE_API_URL.replace('/api', '') 
+  : 'http://localhost:5001';
 
 const useSocket = () => {
   const dispatch = useDispatch();

@@ -1,7 +1,9 @@
 import {createSlice,createAsyncThunk} from '@reduxjs/toolkit'
 import axios from 'axios'
 
-const API_URL=`/api/users/`;
+const API_URL = import.meta.env.VITE_API_URL 
+  ? `${import.meta.env.VITE_API_URL}/users/` 
+  : `/api/users/`;
 
 const user=JSON.parse(localStorage.getItem('user'));    
 
