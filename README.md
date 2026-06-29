@@ -71,9 +71,8 @@ A full-stack application designed to simulate real-world technical interviews. I
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/siddhantsaxenaofficial/ai-interviewer.git
-cd ai-interviewer
-
+git clone https://github.com/AnirudhBhatt/MockMate.git
+cd MockMate
 ```
 
 ### 2. Backend Setup (Node.js)
@@ -83,35 +82,34 @@ cd backend
 npm install
 
 # Create a .env file
-echo "PORT=5000" > .env
+echo "PORT=5001" > .env
 echo "MONGO_URI=your_mongodb_connection_string" >> .env
 echo "JWT_SECRET=your_jwt_secret" >> .env
 echo "NODE_ENV=development" >> .env
 
 # Run the server
-npm run server
-
+npm run dev
 ```
 
 ### 3. AI Service Setup (Python)
 
 ```bash
-cd ../ai_service
+cd ../ai-service
 
 # Create virtual environment
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
-pip install fastapi uvicorn ollama openai-whisper pydub python-dotenv
+pip install -r requirements.txt
 
 # Create a .env file
 echo "AI_SERVICE_PORT=8000" > .env
-echo "OLLAMA_MODEL_NAME=mistral" >> .env
+echo "GROQ_API_KEY=your_groq_api_key" >> .env
+echo "GROQ_MODEL_NAME=llama-3.3-70b-versatile" >> .env
 
 # Run the microservice
 uvicorn main:app --reload --port 8000
-
 ```
 
 ### 4. Frontend Setup (React)
@@ -121,11 +119,11 @@ cd ../frontend
 npm install
 
 # Create a .env file
-echo "VITE_API_URL=http://localhost:5000/api" > .env
+echo "VITE_API_URL=http://localhost:5001/api" > .env
+echo "VITE_GOOGLE_CLIENT_ID=your_google_client_id" >> .env
 
 # Run the frontend
 npm run dev
-
 ```
 ### or shortcut
 
@@ -147,7 +145,16 @@ The application follows a microservices-inspired architecture to separate heavy 
 * Receives `POST /evaluate` (Text/Code -> Score/Feedback JSON).
 
 
-4. **Ollama**: The local LLM engine that powers the generation and evaluation logic.
+4. **Ollama / Groq Cloud**: The LLM engine that powers the generation and evaluation logic. Locally, it can use Ollama (`mistral`); in production, it queries Groq's cloud-hosted `llama-3.3-70b-versatile` for sub-second evaluations.
+
+---
+
+## 🌐 Production Deployment (Hybrid Architecture)
+
+This application is configured and deployed online using a hybrid hosting strategy:
+- **Frontend**: Hosted on **Vercel** (with Vite framework preset pointing to the `frontend` root).
+- **Backend (API Gateway)**: Hosted on **Render** as a Node Web Service (connected to MongoDB Atlas).
+- **AI Microservice**: Hosted on **Render** as a Python Web Service (querying the Groq API).
 
 ---
 
