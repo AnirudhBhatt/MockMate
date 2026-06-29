@@ -18,14 +18,23 @@ const app = express();
 
 const server = http.createServer(app);
 
-const allowedOrigin = [
+const allowedOrigins = [
     'http://localhost:5174',
     'http://localhost:5173',
-]
+    'https://mock-mate-livid-two.vercel.app',
+];
+
+const checkOrigin = (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+        callback(null, true);
+    } else {
+        callback(new Error('Not allowed by CORS'));
+    }
+};
 
 const io = new Server(server, {
     cors: {
-        origin: allowedOrigin,
+        origin: checkOrigin,
         methods: ['GET', 'POST', 'PUT', 'DELETE',  'OPTIONS'],
         credentials: true,
         allowedHeaders: ['Content-Type', 'Authorization'],
@@ -33,7 +42,7 @@ const io = new Server(server, {
 })
 
 app.use(cors({
-    origin: allowedOrigin,
+    origin: checkOrigin,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization',"X-Requested-With"],
