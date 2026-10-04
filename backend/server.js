@@ -11,7 +11,10 @@ import userRoutes from "./routes/userRoutes.js";
 import sessionRoutes from "./routes/sessionRoutes.js";
 import { notFound, errorHandler } from "./middleware/errorMiddleware.js";
 
+const __dirname = path.resolve();
 dotenv.config();
+dotenv.config({ path: path.join(__dirname, "backend", ".env") });
+dotenv.config({ path: path.join(__dirname, ".env") });
 
 connectDB();
 
