@@ -4,6 +4,7 @@ import http from "http";
 import dotenv from "dotenv";
 import cors from "cors";
 import path from "path";
+import mongoose from "mongoose";
 import { Server } from "socket.io";
 import connectDB from "./config/db.js";
 import userRoutes from "./routes/userRoutes.js";
@@ -52,6 +53,16 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.set("io", io);
+
+// Database Connection Guard Middleware
+app.use("/api", (req, res, next) => {
+    if (mongoose.connection.readyState !== 1) {
+        return res.status(503).json({
+            message: "Database Connection Error: Unable to connect to MongoDB Atlas. Please ensure MONGO_URI is set on backend host (Render) and MongoDB Atlas IP access (0.0.0.0/0) is allowed."
+        });
+    }
+    next();
+});
 
 app.use("/api/users", userRoutes);
 app.use("/api/sessions", sessionRoutes);
