@@ -1,0 +1,314 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{microtype}
+
+% Define colors for code listing
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+\lstset{style={mystyle}}
+
+\title{\textbf{MockMate AI: Intelligent Technical Interview Simulator} \\ \large Comprehensive Architectural, Source Code, and Interview Preparation Documentation}
+\author{\textbf{Anirudh Bhatt} \\ \small \href{mailto:anirudhbhatt58@gmail.com}{anirudhbhatt58@gmail.com}}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+MockMate AI is an advanced, full-stack technical interview simulator designed to bridge the gap between traditional conceptual learning and practical, real-world technical assessments. By integrating automated speech-to-text transcription via OpenAI Whisper, interactive browser-based code compilation using the Monaco Editor, and sub-second LLM evaluations powered by Llama 3.3 via the Groq Cloud API, MockMate AI provides candidates with holistic, constructive feedback on their technical proficiency, communications, and coding accuracy. This document details the architectural considerations, component justifications, core source code details, database schemas, system scalability designs, and a comprehensive interview preparation guide.
+\end{abstract}
+
+\newpage
+\tableofcontents
+\newpage
+
+\section{Introduction}
+Modern technical interviews evaluate a wide array of skills, including verbal communication of abstract concepts and hand-written system engineering code. Candidates often practice these skills in isolation. MockMate AI aggregates these modalities into a cohesive web-based workspace.
+
+The core design goals of the system are:
+\begin{itemize}
+    \item \textbf{Immersive Simulation}: Mirroring a real-world coding assessment with live timers, audio transcription, and compilation.
+    \item \textbf{Low Inference Latency}: Utilizing Groq's high-speed inference engine to keep LLM response times under 1.5 seconds.
+    \item \textbf{Decoupled Workloads}: Separating standard API gateways (user auth, session metadata) from heavy CPU/GPU tasks (AI whisper transcribing, code running).
+\end{itemize}
+
+\section{System Architecture}
+The system follows a hybrid microservices design comprising three distinct layers:
+\begin{enumerate}
+    \item \textbf{React Frontend (Client)}: Renders the candidate dashboard, timer controls, audio visualizers, and Monaco IDE. Manages state using Redux Toolkit.
+    \item \textbf{Node.js \& Express (API Gateway)}: Handles MongoDB schemas, user signup, JWT verification, and active session listings. Operates on port 5001.
+    \item \textbf{Python \& FastAPI (AI Microservice)}: Performs heavy processing, transcribes audio, structures Groq LLM requests, and compiles sandboxed code. Operates on port 8000.
+\end{enumerate}
+
+\begin{table}[htbp]
+\centering
+\caption{System Ports and Roles}
+\begin{tabular}{lll}
+\toprule
+\textbf{Service} & \textbf{Default Port} & \textbf{Core Responsibility} \\
+\midrule
+React / Vite & 5173 & Web UI \& User Interactions \\
+Node.js / Express & 5001 & DB Operations \& Auth Middleware \\
+Python / FastAPI & 8000 & Whisper Transcriptions \& Llama Evaluations \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Tech Stack \& Justifications}
+This section outlines the technology choices and the engineering reasons behind them.
+
+\subsection{Frontend: React \& Redux Toolkit}
+\textbf{Justification}: Technical assessments require dynamic state changes (live timers updating, audio streams starting/stopping, terminal logs printing). React's component-based virtual DOM ensures smooth renderings. Redux Toolkit acts as a centralized source of truth, synchronizing user profiles and active interview steps across separate workspace tabs.
+
+\subsection{Backend: Node.js \& Express}
+\textbf{Justification}: Node.js uses non-blocking, event-driven I/O, which is ideal for an API gateway that handles numerous simultaneous HTTP requests. Express provides lightweight routing utilities and secure CORS filtering, enabling cross-origin browser validation between frontend (Vercel) and backend endpoints (Render).
+
+\subsection{AI Service: Python \& FastAPI}
+\textbf{Justification}: Python is the standard language for machine learning and scientific audio processing. FastAPI is selected over Flask or Django due to its asynchronous runtime support (using \texttt{async/await} loop architectures) and automatically generated OpenAPI documentation. This allows the API to process multiple heavy audio transcriptions concurrently without blocking the server.
+
+\subsection{LLM Engine: Groq Cloud API \& Llama 3.3}
+\textbf{Justification}: Local model rendering (such as local Ollama instances) on free-tier cloud deployment servers is impossible due to memory limits (1GB RAM caps). The Groq API solves this by performing remote server evaluations using Llama 3.3 (70B parameters) in less than 2 seconds, which is faster than local GPU card models.
+
+\subsection{Code Execution Sandbox: Wandbox API}
+\textbf{Justification}: Executing raw, untrusted user-submitted code directly on local servers presents significant security vulnerabilities (such as shell injections or resource exhaustion). By forwarding language execution payloads to the sandboxed Wandbox compilation API, the application isolates the execution host while supporting multiple compiler targets (Node.js, C++, Python, Java).
+
+\section{Database Design (MongoDB)}
+The MongoDB database uses two primary collections: \texttt{users} and \texttt{sessions}.
+
+\subsection{User Schema}
+Stores credentials, registration dates, and security parameters.
+\begin{lstlisting}[language=JavaScript, caption=User Schema definition]
+const userSchema = mongoose.Schema({
+    name: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    createdAt: { type: Date, default: Date.now }
+});
+\end{lstlisting}
+
+\subsection{Session Schema}
+Stores complete active or completed session evaluations, including raw transcripts, code files, and AI marks.
+\begin{lstlisting}[language=JavaScript, caption=Session Schema definition]
+const sessionSchema = mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    role: { type: String, required: true },
+    level: { type: String, enum: ['Junior', 'Mid-Level', 'Senior'], required: true },
+    status: { type: String, default: 'Pending' },
+    questions: [{
+        questionText: String,
+        type: { type: String, enum: ['conceptual', 'coding'] },
+        transcription: String,
+        submittedCode: String,
+        evaluation: {
+            score: Number,
+            feedback: String,
+            correctAnswer: String
+        }
+    }],
+    overallScore: Number,
+    createdAt: { type: Date, default: Date.now }
+});
+\end{lstlisting}
+
+\section{Core Component Source Code Explanations}
+
+\subsection{API Gateway: CORS \& WebSockets (server.js)}
+The Node.js server acts as the primary access gateway. We configure dynamic CORS filters to securely accept incoming cross-origin requests from both local development ports and live Vercel deployments.
+\begin{lstlisting}[language=JavaScript, caption=Dynamic CORS configuration in server.js]
+const allowedOrigins = [
+    'http://localhost:5173',
+    'https://mock-mate-livid-two.vercel.app'
+];
+
+const checkOrigin = (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl) 
+    // or subdomains of vercel.app
+    if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+        callback(null, true);
+    } else {
+        callback(new Error('Not allowed by CORS'));
+    }
+};
+
+const io = new Server(server, {
+    cors: {
+        origin: checkOrigin,
+        credentials: true,
+        methods: ["GET", "POST"]
+    }
+});
+\end{lstlisting}
+
+\subsection{AI Microservice: Transcription \& Prompting (main.py)}
+The Python microservice receives base64 encoded audio strings or code snippets and executes Whisper transcriptions and Llama prompts.
+\begin{lstlisting}[language=Python, caption=FastAPI transcription endpoint in main.py]
+@app.post("/transcribe")
+async def transcribe_audio(file: UploadFile = File(...)):
+    try:
+        if not groq_client:
+            raise HTTPException(status_code=503, detail="Groq client is not initialized")
+            
+        audio_bytes = await file.read()
+        
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as tmp:
+            tmp.write(audio_bytes)
+            temp_audio_path = tmp.name
+            
+        try:
+            with open(temp_audio_path, "rb") as audio_file:
+                transcription = groq_client.audio.transcriptions.create(
+                    file=(os.path.basename(temp_audio_path), audio_file.read()),
+                    model="whisper-large-v3",
+                    response_format="json",
+                )
+            return {"transcription": transcription.text.strip()}
+        finally:
+            if os.path.exists(temp_audio_path):
+                os.remove(temp_audio_path)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+\end{lstlisting}
+
+\subsection{Frontend: Socket.io Context Helper (useSocket.js)}
+WebSocket listeners maintain real-time bidirectional status notifications. The configuration automatically adapts between localhost and production domains.
+\begin{lstlisting}[language=JavaScript, caption=Dynamic WebSocket connection hook]
+import { useEffect, useRef } from 'react';
+import { io } from 'socket.io-client';
+
+export const useSocket = () => {
+    const socketRef = useRef(null);
+    const apiURL = import.meta.env.VITE_API_URL || "http://localhost:5001";
+    const backendURL = apiURL.replace('/api', '');
+
+    useEffect(() => {
+        socketRef.current = io(backendURL, {
+            withCredentials: true
+        });
+
+        return () => {
+            if (socketRef.current) {
+                socketRef.current.disconnect();
+            }
+        };
+    }, [backendURL]);
+
+    return socketRef.current;
+};
+\end{lstlisting}
+
+\section{AI Prompt Engineering \& Evaluation Systems}
+The core intelligence of MockMate AI lies in its evaluation prompting. When generating questions or reviewing submissions, the model is instructed to act as a strict tech lead.
+
+\subsection{Structured LLM Prompt Template}
+Here is the core prompt configuration utilized to evaluate conceptual and coding questions:
+\begin{lstlisting}[caption=LLM evaluation prompt structure]
+You are a highly demanding Senior Tech Lead interviewing a candidate.
+Evaluate the candidate's answer based on the following criteria:
+- Technical Accuracy (60% weight)
+- Communication Clarity (20% weight)
+- Depth of Knowledge (20% weight)
+
+For Coding submissions:
+- Validate if the code compiles and runs successfully.
+- Grade space and time complexity (Big O notation).
+- Look for edge cases (null inputs, empty values, overflow).
+
+Response Format:
+Return your evaluation STRICTLY as a JSON object:
+{
+  "score": <integer from 0 to 100>,
+  "feedback": "<detailed constructive review text>",
+  "correctAnswer": "<optimal solution or explanation>"
+}
+\end{lstlisting}
+
+\section{Interview Preparation Guide \& Technical Q\&A}
+This section compiles critical technical questions frequently asked during system reviews, alongside candidate response scripts.
+
+\subsection{General \& Architectural Engineering}
+
+\paragraph{Q1: Explain the architectural design of your application. Why use two backend services (Node and FastAPI)?}
+\textbf{Answer}: The system was designed as a decoupled services architecture to isolate standard web operations from resource-heavy processing:
+1. \textbf{Node.js/Express (API Gateway)}: Handles HTTP CRUD operations for users, database persistence, and WebSocket routing. Its event-driven, non-blocking model ensures rapid data processing.
+2. \textbf{FastAPI (Python Service)}: Integrates the machine learning APIs (Whisper and LLM prompt templates) because the Python ML ecosystem is mature and highly performant.
+If these were combined into a single service, running Whisper transcribing threads or parsing massive audio buffers would block the single-threaded Node event loop, causing timeouts.
+
+\paragraph{Q2: How did you manage latency when generating questions or evaluating answers?}
+\textbf{Answer}: Large AI models like Llama 3.3 and Whisper take time to process. Keeping HTTP connections open during these evaluations would lead to browser timeouts. 
+To resolve this, I implemented an asynchronous event-driven background processing pattern:
+1. When starting or submitting an answer, Node.js immediately saves a placeholder in MongoDB and returns an HTTP \texttt{202 Accepted} status, freeing the client UI.
+2. An asynchronous worker function is triggered in the background to handle Python service calls.
+3. Throughout the processing pipeline, the backend streams live progress notifications to the client using \textbf{Socket.io WebSockets} (e.g., \texttt{AI\_TRANSCRIBING}, \texttt{AI\_EVALUATING}), keeping the user interface dynamic and responsive.
+
+\paragraph{Q3: What happens if the Groq Cloud API goes down? Did you implement any fallback mechanisms?}
+\textbf{Answer}: Yes. Inside the Python FastAPI service, I constructed an automated fallback routing pattern. The service prioritizes Groq's API client. If connection timeouts or API errors occur, the backend intercepts the failure and reroutes the prompts to a locally hosted \textbf{Ollama instance} running a local model (like Mistral).
+
+\paragraph{Q4: How does the PDF resume parsing work under the hood?}
+\textbf{Answer}: When starting a session, the user can upload a PDF resume. The Express gateway intercepts the file using \texttt{multer} middleware, reads the temporary file path buffer, and extracts the raw content using \texttt{pdf-parse}. This text is injected into the LLM system prompt as context, instructing Llama 3.3 to customize the interview questions to the candidate's actual projects and experience.
+
+\subsection{Database Optimization \& Data Modeling}
+
+\paragraph{Q5: What is your database schema structure? How do you map sessions and questions?}
+\textbf{Answer}: I implemented MongoDB using two main collections: \texttt{users} and \texttt{sessions}. Embedded as a subdocument array within the \texttt{sessions} collection is the list of questions. Since interviews are self-contained entities, keeping the questions within the session document eliminates the need for expensive relational joins, letting us retrieve the full state of an interview in a single, fast database read.
+
+\paragraph{Q6: Why did you use MongoDB over SQL databases (like PostgreSQL)?}
+\textbf{Answer}: Interview data is highly unstructured and variable: conceptual questions store text transcriptions, whereas coding challenges contain multi-line code scripts, compiler logs, and Big-O feedback. In a relational database, this would require complex multi-table joins. MongoDB's document model matches this naturally, storing each session as a single document and allowing schema changes without migrations.
+
+\paragraph{Q7: How do you calculate overall analytics for the dashboard? How is it optimized?}
+\textbf{Answer}: The dashboard averages are calculated using MongoDB's \textbf{Aggregation Framework}. Instead of pulling massive datasets into the Node service memory, calculations occur on the database server using \texttt{\$match}, \texttt{\$unwind}, and \texttt{\$group} stages. Additionally, for list views, I used projection operators (\texttt{.select('-questions.userAnswerText')}) to exclude heavy text and code structures from the network payload.
+
+\subsection{Frontend \& Network Protocols}
+
+\paragraph{Q8: How does the browser capture and transmit audio for speech-to-text?}
+\textbf{Answer}: The React frontend uses the browser's native \texttt{MediaRecorder API} to capture the microphone's input stream. Binary audio packets are accumulated and compiled into a single \texttt{Blob} of type \texttt{audio/webm}. On submission, this blob is appended to a \texttt{FormData} payload and uploaded to the Express backend via a standard HTTP POST request.
+
+\paragraph{Q9: How does Monaco Editor handle multiple languages? How is code executed?}
+\textbf{Answer}: I integrated the \texttt{@monaco-editor/react} component. Syntax highlighting and formatting dynamically adjust based on the language option selected by the user. When executing code, the frontend sends a POST request containing the source code and language to the backend's \texttt{/execute} endpoint. The backend proxies this request to the \textbf{Wandbox API}, compiles it in a sandboxed container, and returns the console output.
+
+\paragraph{Q10: Explain the CORS issues you encountered during deployment and how you solved them.}
+\textbf{Answer}: Since the client is deployed on Vercel and the backend services are on Render, cross-origin requests are blocked by browsers by default. I resolved this by writing a custom validation function inside Express's CORS middleware. The function matches the request origin against a static allowed list (for local development and main production) and dynamically allows wildcards matching any \texttt{.vercel.app} subdomains to support preview deployments.
+
+\section{System Scalability Design}
+
+\paragraph{How would you scale this application to support 10,000 active concurrent users?}
+\textbf{Answer}: To scale the platform for heavy production traffic, I would implement the following architecture changes:
+\begin{enumerate}
+    \item \textbf{Stateless API Gateway Layer}: Put the Node.js instances behind an ALB (Application Load Balancer) running in auto-scaling container groups (such as AWS ECS or Kubernetes).
+    \item \textbf{Redis WebSocket Adapter}: Run a Redis pub/sub backplane to synchronize Socket.io state messages across separate backend application instances.
+    \item \textbf{Distributed Task Queues}: Replace standard asynchronous functions with a robust message broker like **RabbitMQ** or **Redis BullMQ** to manage evaluation tasks. This isolates long-running operations in separate worker pools.
+    \item \textbf{Data Caching}: Place a **Redis cache** in front of MongoDB to cache static interview configurations, dashboard charts, and historical profile data.
+\end{enumerate}
+
+\section{Conclusion}
+MockMate AI features a robust, modern architectural framework designed to scale. By offloading resource-heavy tasks to specialized cloud microservices (FastAPI and Groq) and using a lightweight API gateway (Node.js) for session management, the application guarantees high performance and user safety. This setup makes it an excellent platform for candidate technical preparation.
+
+\end{document}

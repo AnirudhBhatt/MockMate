@@ -78,7 +78,7 @@ const Login = () => {
         <form onSubmit={onSubmit} className='grid grid-cols-1 gap-4'>
           <div className='space-y-1'>
             <label className='text-[10px] font-bold uppercase text-gray-400 dark:text-slate-500 ml-1'>Email</label>
-            <input type="email" name="email" value={email} className='w-full p-3 bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 dark:text-white rounded-xl focus:ring-2 focus:ring-teal-500 outline-none transition-all ' placeholder='khushipandey@gmail.com' onChange={onChange} required />
+            <input type="email" name="email" value={email} className='w-full p-3 bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 dark:text-white rounded-xl focus:ring-2 focus:ring-teal-500 outline-none transition-all ' placeholder='anirudhbhatt58@gmail.com' onChange={onChange} required />
           </div>
 
           <div className='space-y-1'>
