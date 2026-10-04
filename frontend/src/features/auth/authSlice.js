@@ -24,7 +24,10 @@ export const register=createAsyncThunk('auth/register',async(userData,thunkAPI)=
         }
         return response.data
     } catch (error) {
-        const message=(error.response && error.response.data && error.response.data.message) || error.message || error.toString();
+        let message=(error.response && error.response.data && error.response.data.message) || error.message || error.toString();
+        if (typeof message === 'string' && message.includes('buffering timed out')) {
+            message = 'Database Connection Timeout: Please set MONGO_URI in Render dashboard and allow 0.0.0.0/0 in MongoDB Atlas Network Access.';
+        }
         return thunkAPI.rejectWithValue(message)
     }
 })
@@ -37,7 +40,10 @@ export const login=createAsyncThunk('auth/login',async(userData,thunkAPI)=>{
         }
         return response.data
     } catch (error) {
-        const message=(error.response && error.response.data && error.response.data.message) || error.message || error.toString();
+        let message=(error.response && error.response.data && error.response.data.message) || error.message || error.toString();
+        if (typeof message === 'string' && message.includes('buffering timed out')) {
+            message = 'Database Connection Timeout: Please set MONGO_URI in Render dashboard and allow 0.0.0.0/0 in MongoDB Atlas Network Access.';
+        }
         return thunkAPI.rejectWithValue(message)
     }
 })
@@ -50,7 +56,10 @@ export const googleLogin=createAsyncThunk('auth/googleLogin',async(token,thunkAP
         }
         return response.data
     } catch (error) {
-        const message=(error.response && error.response.data && error.response.data.message) || error.message || error.toString();
+        let message=(error.response && error.response.data && error.response.data.message) || error.message || error.toString();
+        if (typeof message === 'string' && message.includes('buffering timed out')) {
+            message = 'Database Connection Timeout: Please set MONGO_URI in Render dashboard and allow 0.0.0.0/0 in MongoDB Atlas Network Access.';
+        }
         return thunkAPI.rejectWithValue(message)
     }
 })
